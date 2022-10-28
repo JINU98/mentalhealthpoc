@@ -11,12 +11,6 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
-.twitter-tweet-rendered{
-  margin: 0 auto !important;
-}
-
-.image-upload > input {
-  visibility:hidden;
-  width:0;
-  height:0
+p{
+  color: black;
 }

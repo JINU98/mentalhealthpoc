@@ -1,242 +1,168 @@
 import logo from './logo.svg';
 import './App.css';
-// import { TwitterTimelineEmbed, TwitterShareButton, TwitterFollowButton, TwitterHashtagButton, TwitterMentionButton, TwitterTweetEmbed, TwitterMomentShare, TwitterDMButton, TwitterVideoEmbed, TwitterOnAirButton } from 'react-twitter-embed';
-import { useState } from 'react';
-import { Tweet } from 'react-twitter-widgets'
+import { useState,useEffect } from 'react';
 import axios from 'axios';
-import { useEffect } from 'react';
-// import Twitter from 'twitter-v2';
+import Convert from 'ansi-to-html';
 
 function App() {
 
-  const [text,setText]=useState("");
-  const [inputValue,setInputValue]= useState("");
-  const [filename,setFilename]=useState("Upload your own meme");
+  var convert = new Convert();
+  const [subreddit,setsubreddit]=useState("medical_advice")
+  const [data,setData]=useState([])
+  const [annotations,setAnnotations]=useState([])
+  const [inferences,setInferences]=useState([])
+
+  const displayInference = (type)=>{
+
   
-  const [previewImage,setPreviewImage]=useState("")
-  const [uploadImage,setUploadImage]=useState("https://cdn-icons-png.flaticon.com/512/2956/2956875.png")
-  const [showResult,setShowResult]=useState(false)
-  const [count,setCount]=useState(0)
- 
-  // const handleTweetSubmit = ()=>{
-  //   setText(inputValue.split("/").pop())
-  //   return
-  // }
 
-  // https://twitter.com/Interior/status/463440424141459456
-
-  //AAAAAAAAAAAAAAAAAAAAAOoOgwEAAAAAHZznerHzxWmwX7pGe9l49eoPwiY%3DycMcrY9HASjfBqv57STyyUSMA46syIImNis3XaVYPLD7KwfDVu
-  //API Key SUmtdRi3cVXYCBcDHyCcFnYFy
-
-  // eJHKxgYRvWS4iZdvPNsvvijrRvKMuImuiXAl2XMWB0RxpssXEz
-// ci S0dBVFgyMi1Kc3R3NWM4X2RlTFM6MTpjaQ
-//cs lehPOQoN7WjWHy_gUCoeFXP0VmtIFRgex0ti-PstWTSTlJpg-p
-
-  // useEffect(() => {
-
-  //   const URL = 'https://api.twitter.com/labs/2/tweets?ids=1566788679523254279'
-
-  //   const bearer = "Bearer AAAAAAAAAAAAAAAAAAAAAOoOgwEAAAAAkFp9%2FJSbdByg4EJ%2Fdzoo1UYwHRs%3DbPDzGQikvGNtroSshlj8ErNmK9qYkUhQoukU9C82BOynAajUVt"
-  //     axios.get(URL, { headers: { Authorization: bearer } })
-  //   .then(response => {
-  //       // If request is good...
-  //       console.log(response.data);
-  //     })
-  //   .catch((error) => {
-  //       console.log('error ' + error);
-  //     });
-   
-  // }, []);
-
-  const show = (count) =>{
-
-    if(count==0){
-      return  (<section class="wrapper style1 align-center">
-              <div class="inner">
+    if(type == "0"){
+      return "None"
+    }
+    if(type == "1"){
+      return "Indication or None"
+    }
+    if(type == "2"){
+      return "Ideation type 1"
+    }
+    if(type == "3"){
+      return "Ideation type 2"
+    }
+    if(type == "4"){
+      return "Behavourial or attempt"
+    }
 
 
-               
-                <h3>Result based on your query.</h3>
-                <div class="items style1 medium onscroll-fade-in">
-                <section>
-                    <h3>Sentiment Analysis</h3>
-                    <b style={{fontWeight:"800"}}>Neutral Sentiment</b>
-                  </section>
-                <section>
-                    <h3>Emotion Analysis</h3>
-                    <b style={{fontWeight:"800"}}>is offensive and humorous</b>
+  }
 
-                  </section>
-                  <section>
-                    <h3>Semantic Classification</h3>
-                    <b style={{fontWeight:"800"}}>and the scale is slightly (3).</b>
-                  </section>
-  
+  const handlePosts = async (posts) => {
+    await axios.get(`http://127.0.0.1:5000/get?posts=${posts}`)
+          // .then((res)=>res.json())
+          
+          .then((res)=>{
+            let html=[];
+            let infer=[];
+            res.data.map((val,ind)=>{
+            // let ansi_up = new AnsiUp();
+              // let html = ansi_up.ansi_to_html(val);
+              // console.log("html",html)
+              // return console.log(val[2])
+              console.log("value index",val,ind)
+              
+                if(val==null){
+                  html.push(" ")
+                  infer.push("0")
+                }
+                else{
+                  html.push(convert.toHtml(val[2]))
+                  infer.push(val[0])
+                  
+                }
                 
-                </div>
-        <img src="heatmaps/heatmap4.png" style={{height:"600px"}} alt="" />
+              
+              
+            })
+            console.log("html",html)
+            setAnnotations(html)
+            setInferences(infer)
+          })
+        }
 
-              </div>
-            
+  // https://www.reddit.com/r/medical_advice/
+  useEffect(() => {
+    fetch("https://www.reddit.com/r/" + subreddit +".json").then(
+      res => {
+        if (res.status !== 200) {
+          console.warn("Warning: Something is wrong with the api.");
+          return;
+        }
+        res.json().then(data => {
+          if (data != null){
+            let posts = []
+            setData(data.data.children.slice(0,10));
+           
 
-            </section>)
-    }
-    if(count==1){
-      return  (<section class="wrapper style1 align-center">
-      <div class="inner">
-       
-      <h3>Result based on your query. The given meme is showing: </h3>
-        <div class="items style1 medium onscroll-fade-in">
+            posts = data.data.children.map((val)=>{
+              return val?.data?.selftext.replaceAll("&amp;","and").replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '');
+            })
+            console.log("posts",posts)
+            handlePosts(JSON.stringify(posts,null,"||"))
+            console.log("data",data.data.children)
+          }
+        });
+      }
+    )
+  }, []);
 
-        <section>
-                    <h3>Sentiment Analysis</h3>
-                    <b style={{fontWeight:"800"}}>Neutral Sentiment</b>
-                  </section>
-                <section>
-                    <h3>Emotion Analysis</h3>
-                    <b style={{fontWeight:"800"}}>is sarcastic and humorous</b>
-
-                  </section>
-                  <section>
-                    <h3>Semantic Classification</h3>
-                    <b style={{fontWeight:"800"}}>and the scale is mild (3).</b>
-                  </section>
-        
-        </div>
-        <img src="heatmaps/heatmap3.png" style={{height:"600px"}} alt="" />
-
-      </div>
-    </section>)
-    }
-
-    if(count==2){
-      return  (<section class="wrapper style1 align-center">
-      <div class="inner">
-       
-      <h3>Result based on your query.</h3>
-        <div class="items style1 medium onscroll-fade-in">
-
-        <section>
-                    <h3>Sentiment Analysis</h3>
-                    <b style={{fontWeight:"800"}}>Negative Sentiment</b>
-                  </section>
-                <section>
-                    <h3>Emotion Analysis</h3>
-                    <b style={{fontWeight:"800"}}>is offensive</b>
-
-                  </section>
-                  <section>
-                    <h3>Semantic Classification</h3>
-                    <b style={{fontWeight:"800"}}>and the scale is very (4).</b>
-                  </section>
-        
-        </div>
-        <img src="heatmaps/heatmap1.png" style={{height:"600px"}} alt="" />
-
-      </div>
-    </section>)
-    }
-    if(count==3){
-      return  (<section class="wrapper style1 align-center">
-      <div class="inner">
-     
-      <h3>Result based on your query.</h3>
-        <div class="items style1 medium onscroll-fade-in">
-        <section>
-                    <h3>Sentiment Analysis</h3>
-                    <b style={{fontWeight:"800"}}>Neutral Sentiment</b>
-                  </section>
-                <section>
-                    <h3>Emotion Analysis</h3>
-                    <b style={{fontWeight:"800"}}>is humorous</b>
-
-                  </section>
-                  <section>
-                    <h3>Semantic Classification</h3>
-                    <b style={{fontWeight:"800"}}>and the scale is very (4).</b>
-                  </section>
-        
-        </div>
-        <img src="heatmaps/heatmap2.png" style={{height:"600px"}} alt="" />
-
-      </div>
-    </section>)
-    }
- 
-
-   
-
-  }
-
-  const verifyURL = (url)=>{
-    
-    if(url.split(".").pop()==="jpg" || url.split(".").pop()==="jpeg" ||url.split(".").pop()==="png"){
-      setPreviewImage(url)
-      setText("")
-    }
-    else{
-      setText(url.split("/").pop())
-      setPreviewImage("")
-    }
-    
-
-  }
-  const changeHandler=(e)=>{
-    if (e.target.files.length > 0) {
-     let file_name = e.target.files[0].name;
-     console.log(e.target.files[0])
-     setPreviewImage(URL.createObjectURL(e.target.files[0]))
-      setFilename(file_name)
-    }
-  }
-
-  const temp = ()=>{
-    setCount(count+1)
-    setShowResult(true)
-
-  }
 
   return (
-    <div className="App">    
-
-    <div >
-      
-
-    <input type="text" placeholder='Paste Meme Image or Twitter Url with a Meme Here...' value={inputValue} style={{textAlign:"center"}}
-              onChange={(e)=>{setInputValue(e.target.value)}} onKeyUp={()=>verifyURL(inputValue)}  
-            
-      /> 
-  
-
-      <div style={{margin:"3vh auto" }}><Tweet tweetId={text} /></div>
-      <div style={{margin:"3vh auto" }}><img src={previewImage}  style={{height:"400px"}} /></div>
-
-
-      <p>Or</p>
-      
-      <div class="image-upload">
-  <label for="file-input">
-    <img src={uploadImage} height={"100px"} style={{cursor:"pointer"}} />
-  </label>
-
-  <input id="file-input" type="file" accept='image/*' onChange={changeHandler} />
-  {/* <p>{filename}</p> */}
-
-  <div><input onClick={temp} type="submit" style={{width:"100%"}} /></div>
-
     <div>
-      {showResult ? show(count%4)  : null}
-    </div>
+      <header className="main">
+        <h1>r/<input class="subreddit_input" onChange={e => setsubreddit(e.target.value)} value={subreddit} /></h1>
+    
+				</header>
 
-</div>
+      <section>
 
-    </div>   
+        {data.map((value,index)=>{
 
+        //  return console.log(value?.data?.selftext)
 
+        return <div key={value?.data?.id} style={{margin:"0 auto",width:"100%"}}>
 
+        { <span> Posted by : <strong> u/{value?.data?.author}</strong> &nbsp;<span> {value.data.author_flair_text}</span> </span>  } <span> {value?.data?.author_flair_text?.includes("Moderator")== true ? <i className="fa fa-star" style={{color:"red"}} aria-hidden="true"></i>: null   }  </span>
+        
+          
+          <div style={{display:"flex",gap:"10px"}}>
+          <div>
+					<h3>{ value?.data?.title} </h3> 
+          </div>
+
+          <div>
+            {
+          <p style={{backgroundColor:"grey",color:'white',margin:"1px",padding:"5px",fontSize:"12px",borderRadius:"10px"}} >{value.data.link_flair_text}</p>
+          }
+            </div>
+            <div>
+            <p style={{backgroundColor:"#f56a6a",color:'white',margin:"1px",padding:"5px",fontSize:"12px",borderRadius:"10px"}} >
+            {displayInference(inferences[index])}
+          </p>
+            </div>
+         
+        
+
+          </div>
+              
+          <div>
+            <source src={value?.data?.media?.scrubber_media_url} 
+            width="640" height="480" frameborder="0" allowfullscreen>
+          </source>
+          </div>
+
+              {/* <img src={value?.data?.thumbnail} style={{height: "200px"}} alt="" /> */}
+
+          {
+          <span> {value?.data?.selftext}
+
+            <br/>
+            <br/>
+            <td style={{color:"white"}} dangerouslySetInnerHTML={{__html: annotations[index]}} />
+
+            {/* {annotations[index]} */}
+
+           <p> <br/> <a href="#" target="_blank" className="button fit"><i className="fa fa-comments" aria-hidden="true"></i> Comments</a> </p> <hr className="major" /> </span>} 
 
    
-  </div>
+
+        </div>
+        
+      
+        })}  
+
+      </section>
+
+
+    </div>
   );
 }
 
